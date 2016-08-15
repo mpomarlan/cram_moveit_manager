@@ -26,15 +26,15 @@
 ;;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;;; POSSIBILITY OF SUCH DAMAGE.
 
-(in-package :mot-man)
+(in-package :cram-moveit-manager)
 
 (defclass moveit-goal-specification (manipulation-goal-specification)
-  (()))
+  ())
 
-(defmethod make-goal-specification ((type (eql :moveit-goal-specification)) &rest args)
+(defmethod mot-man:make-goal-specification ((type (eql :moveit-goal-specification)) &rest args)
   (apply #'make-instance (cons 'moveit-goal-specification args)))
 
-(defmethod make-goal-specification ((type (eql 'moveit-goal-specification)) &rest args)
+(defmethod mot-man:make-goal-specification ((type (eql 'moveit-goal-specification)) &rest args)
   (apply #'make-instance (cons 'moveit-goal-specification args)))
 
 (defun sanity-check (goal-spec)
@@ -48,42 +48,45 @@
     (equal (length unique-arms) (length arms))))
 
 (defun plan-trajectory (side link-name pose-stamped ignore-collisions allowed-collision-objects collidable-objects max-tilt raise-elbow start-state touch-links object-names-in-hand hand-link-names)
-  (let* ((result nil)
-         (planning-group (planning-group-name side)))
+  (let* ((planning-group (planning-group-name side))
+         (log-id (first (cram-language::on-prepare-move-arm
+                          link-name pose-stamped
+                          planning-group ignore-collisions)))
+         (result nil))
     (cpl-impl:with-failure-handling
       ((moveit:no-ik-solution (f)
          (declare (ignore f))
-         (ros-error (move arm) "No IK solution found.")
+         (roslisp:ros-error (move arm) "No IK solution found.")
          (cram-language::on-finish-move-arm log-id nil)
          (error 'manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:planning-failed (f)
          (declare (ignore f))
-         (ros-error (move arm) "Planning failed.")
+         (roslisp:ros-error (move arm) "Planning failed.")
          (cram-language::on-finish-move-arm log-id nil)
          (error 'manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:goal-violates-path-constraints (f)
          (declare (ignore f))
-         (ros-error (move arm) "Goal violates path constraints.")
+         (roslisp:ros-error (move arm) "Goal violates path constraints.")
          (cram-language::on-finish-move-arm log-id nil)
          (error 'manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:invalid-goal-constraints (f)
          (declare (ignore f))
-         (ros-error (move arm) "Invalid goal constraints.")
+         (roslisp:ros-error (move arm) "Invalid goal constraints.")
          (cram-language::on-finish-move-arm log-id nil)
          (error 'manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:timed-out (f)
          (declare (ignore f))
-         (ros-error (move arm) "Timeout.")
+         (roslisp:ros-error (move arm) "Timeout.")
          (cram-language::on-finish-move-arm log-id nil)
          (error 'manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:goal-in-collision (f)
          (declare (ignore f))
-         (ros-error (move arm) "Goal in collision.")
+         (roslisp:ros-error (move arm) "Goal in collision.")
          (cram-language::on-finish-move-arm log-id nil)
          (error 'manipulation-pose-unreachable
                 :result (list side pose-stamped))))
@@ -105,7 +108,8 @@
                                    :plan-only T
                                    :additional-values `(t))
               (declare (ignorable start))
-              trajectory))))
+              (cram-language::on-finish-move-arm log-id T)
+              trajectory)))))
 
 (defun plan-trajectory-sequence (side link-name poses ignore-collisions allowed-collision-objects collidable-objects max-tilt raise-elbow)
   (let* ((touch-links (arm-link-names side))
@@ -115,7 +119,6 @@
          (trajectories (mapcar (lambda (pose)
                                  (let* ((trajectory (plan-trajectory side link-name pose ignore-collisions allowed-collision-objects collidable-objects max-tilt raise-elbow start-state
                                                     touch-links object-names-in-hand hand-link-names)))
-                                   ;; TODO: implement the moveit:get-end-robot-state function!
                                    (setf start-state (moveit:get-end-robot-state start-state trajectory))
                                    trajectory))
                                poses)))
@@ -136,12 +139,12 @@
                                         allowed-collision-objects
                                         collidable-objects
                                         max-tilt
-                                        raise-elbow (if (find (side arm-pose-goal) raised-elbows) T nil)))
+                                        (if (find (side arm-pose-goal) raised-elbows) T nil)))
             (arm-pose-goals goal-spec))))
 
-(defmethod execute-arm-action ((goal-specification moveit-goal-specification))
+(defmethod mot-man:execute-arm-action ((goal-specification moveit-goal-specification))
   (unless (cadr (assoc :quiet (keys goal-specification)))
-    (ros-info (moveit motion manager) "Executing arm movement"))
+    (roslisp:ros-info (moveit motion manager) "Executing arm movement"))
   (if (sanity-check goal-specification)
     (let* ((trajectories (plan-trajectories goal-specification))
            (plan-only (plan-only goal-specification))

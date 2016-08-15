@@ -27,11 +27,15 @@
 
 (in-package :cl-user)
 
-(defpackage cram-moveit-manager
-  (:use #:common-lisp #:cram-plan-failures #:cram-language #:prolog #:cut #cram-moveit #:mot-man)
+#.`(defpackage cram-moveit-manager
+  (:use #:common-lisp #:cram-motion-manager)
+  ;; These functions are not intended to be visible except to implementations of motion managers.
+  (:import-from :mot-man ::arm-link ::arm-pose-goals ::call-fallback ::copy-goal-specification ::keys ::plan-only ::poses ::side)
   (:export
     ;; Types
     #:moveit-goal-specification
     ;; Fallback-converter: generate a goal-spec for this manager from a goal-spec of a different one
-    #:fallback-to-moveit))
+    #:fallback-to-moveit
+    ,@(let ((r nil))
+       (do-external-symbols (s :mot-man r) (push s r)))))
 
