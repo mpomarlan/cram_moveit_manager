@@ -1,0 +1,34 @@
+<package>
+  <name>cram_moveit_manager</name>
+  <version>0.2.1</version>
+
+  <description>
+
+     Implements the CRAM motion manager interface to work with MoveIt 
+
+  </description>
+  <author>Mihai Pomarlan</author>
+  <maintainer email="blandc@cs.uni-bremen.de">Mihai Pomarlan</maintainer>
+  <license>BSD</license>
+  <url>http://ros.org/wiki/cram_motion_manager</url>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>cram_language</build_depend>
+  <build_depend>cram_plan_failures</build_depend>
+  <build_depend>cram_prolog</build_depend>
+  <build_depend>cram_utilities</build_depend>
+  <build_depend>cram_moveit</build_depend>
+  <build_depend>cram_motion_manager</build_depend>
+  
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>cram_language</run_depend>
+  <run_depend>cram_plan_failures</run_depend>
+  <run_depend>cram_prolog</run_depend>
+  <run_depend>cram_utilities</run_depend>
+  <run_depend>cram_moveit</run_depend>
+  <run_depend>cram_motion_manager</run_depend>
+
+</package>
