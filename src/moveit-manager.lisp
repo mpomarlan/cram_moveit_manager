@@ -115,7 +115,7 @@
   (let* ((touch-links (arm-link-names side))
          (object-names-in-hand (object-names-in-hand side))
          (hand-link-names (hand-link-names side))
-         (start-state nil)
+         (start-state (second (first (moveit:get-planning-scene-info :robot-state T))))
          (trajectories (mapcar (lambda (pose)
                                  (let* ((trajectory (plan-trajectory side link-name pose ignore-collisions allowed-collision-objects collidable-objects max-tilt raise-elbow start-state
                                                     touch-links object-names-in-hand hand-link-names)))
