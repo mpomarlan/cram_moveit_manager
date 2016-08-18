@@ -201,3 +201,10 @@
 (defun fallback-to-moveit (goal-spec)
   (copy-goal-specification goal-spec 'moveit-goal-specification))
 
+(defmethod make-fallback-converter ((type (eql :moveit-goal-specification)))
+  #'fallback-to-moveit)
+
+(defmethod make-fallback-converter ((type (eql 'moveit-goal-specification)))
+  #'fallback-to-moveit)
+
+
