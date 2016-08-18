@@ -146,30 +146,49 @@
   (unless (cadr (assoc :quiet (keys goal-specification)))
     (roslisp:ros-info (moveit motion manager) "Executing arm movement"))
   (if (sanity-check goal-specification)
-    (let* ((trajectories (plan-trajectories goal-specification))
+    ;; TODO: something is weird when concatenating trajectories in cram-moveit, and results
+    ;; in occasional controller aborts. Fix that in the future, meanwhile work-around
+    (let* (;;(trajectories (plan-trajectories goal-specification))
+           (trajectories nil)
+           (start-state (second (first (moveit:get-planning-scene-info :robot-state T))))
+           (arm-pose-goals (arm-pose-goals goal-specification))
            (plan-only (plan-only goal-specification))
+           (keys (keys goal-specification))
+           (ignore-collisions (cadr (assoc :ignore-collisions keys)))
+           (allowed-collision-objects (cadr (assoc :allowed-collision-objects keys)))
+           (collidable-objects (cadr (assoc :collidable-objects keys)))
+           (max-tilt (cadr (assoc :max-tilt keys)))
+           (raised-elbows (cadr (assoc :raise-elbow keys)))
   ;; TODO: add log call here, around the block with trajectory execution.
            (result 
              (block execute-trajectories
-              (cpl-impl:with-failure-handling
-                ((moveit:control-failed (f)
-                   ;; TODO: add more logging here.
-                   ;; TODO: think about whether this is useful, ie. consider just propagating this signal upwards. The motion managers will likely be using the same
-                   ;; low level robot controller, and just switching to another motion manager is unlikely to help.
-                   (roslisp:ros-error (moveit motion manager) "Control failure while executing moveit trajectories, attempting to fall-back to another motion manager.")
-                   (return-from execute-trajectories (make-instance 'manipulation-result
-                                                                    :all-ok nil
-                                                                    :trajectories trajectories
-                                                                    :error-object f
-                                                                    :error-message "Control failure occurred while executing moveit trajectories."))))
-                (unless plan-only
-                  (moveit:execute-trajectories trajectories :ignore-va T))
-                (make-instance 'manipulation-result
-                               :all-ok T
-                               :trajectories trajectories)))))
-      (if (all-ok result)
-        result
-        (call-fallback goal-specification)))
+               (loop for arm-goals in arm-pose-goals do
+                 (let* ((arm (side arm-goals))
+                        (link-name (arm-link arm-goals))
+                        (poses (poses arm-goals))
+                        (raise-elbow (if (find arm raised-elbows) T nil))
+                        (touch-links (arm-link-names arm))
+                        (object-names-in-hand (object-names-in-hand arm))
+                        (hand-link-names (hand-link-names arm)))
+                   (loop for pose in poses do
+                     (cpl-impl:with-failure-handling
+                       ((moveit:control-failed (f)
+                          ;; TODO: add more logging here.
+                          (declare (ignore f))
+                          (cpl-impl:retry)))
+                       (setf start-state (second (first (moveit:get-planning-scene-info :robot-state T))))
+                       (let* ((trajectory (plan-trajectory arm link-name pose ignore-collisions allowed-collision-objects collidable-objects max-tilt raise-elbow start-state
+                                                           touch-links object-names-in-hand hand-link-names)))
+                         (setf trajectories (cons trajectory trajectories))
+                         (setf start-state (moveit:get-end-robot-state start-state trajectory))
+                         (unless plan-only
+                           (moveit:execute-trajectory trajectory)
+                           (roslisp:wait-duration 0.2)
+                           (setf start-state (second (first (moveit:get-planning-scene-info :robot-state T))))))))))                
+              (make-instance 'manipulation-result
+                             :all-ok T
+                             :trajectories (reverse trajectories)))))
+      result)
     (call-fallback goal-specification)))
 
 (defun fallback-to-moveit (goal-spec)
