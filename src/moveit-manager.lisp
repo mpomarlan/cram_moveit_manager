@@ -182,7 +182,14 @@
                          (setf trajectories (cons trajectory trajectories))
                          (setf start-state (moveit:get-end-robot-state start-state trajectory))
                          (unless plan-only
-                           (moveit:execute-trajectory trajectory)
+                           (cpl-impl:with-failure-handling
+                             ((moveit:timed-out (f)
+                                (declare (ignore f))
+                                ;; A bit of a dirty hack to catch a "TIME-OUT" during execution (as opposed to planning) from Moveit.
+                                ;; Turns out such an error may not indicate the robot can't reach, so we will retry the plan/execute
+                                ;; steps. To do so, change the signal to something the next failure-handling can catch.
+                                (error 'moveit:control-failed)))
+                             (moveit:execute-trajectory trajectory))
                            (roslisp:wait-duration 0.2)
                            (setf start-state (second (first (moveit:get-planning-scene-info :robot-state T))))))))))                
               (make-instance 'manipulation-result
