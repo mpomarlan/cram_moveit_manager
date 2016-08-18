@@ -139,7 +139,7 @@
                                         allowed-collision-objects
                                         collidable-objects
                                         max-tilt
-                                        (if (find (side arm-pose-goal) raised-elbows) T nil)))
+                                        (if (find (side arm-pose-goal) raised-elbows) (side arm-pose-goal) nil)))
             (arm-pose-goals goal-spec))))
 
 (defmethod mot-man:execute-arm-action ((goal-specification moveit-goal-specification))
