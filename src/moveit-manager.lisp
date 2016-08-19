@@ -58,37 +58,37 @@
          (declare (ignore f))
          (roslisp:ros-error (move arm) "No IK solution found.")
          (cram-language::on-finish-move-arm log-id nil)
-         (error 'manipulation-pose-unreachable
+         (error 'cram-plan-failures:manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:planning-failed (f)
          (declare (ignore f))
          (roslisp:ros-error (move arm) "Planning failed.")
          (cram-language::on-finish-move-arm log-id nil)
-         (error 'manipulation-pose-unreachable
+         (error 'cram-plan-failures:manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:goal-violates-path-constraints (f)
          (declare (ignore f))
          (roslisp:ros-error (move arm) "Goal violates path constraints.")
          (cram-language::on-finish-move-arm log-id nil)
-         (error 'manipulation-pose-unreachable
+         (error 'cram-plan-failures:manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:invalid-goal-constraints (f)
          (declare (ignore f))
          (roslisp:ros-error (move arm) "Invalid goal constraints.")
          (cram-language::on-finish-move-arm log-id nil)
-         (error 'manipulation-pose-unreachable
+         (error 'cram-plan-failures:manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:timed-out (f)
          (declare (ignore f))
          (roslisp:ros-error (move arm) "Timeout.")
          (cram-language::on-finish-move-arm log-id nil)
-         (error 'manipulation-pose-unreachable
+         (error 'cram-plan-failures:manipulation-pose-unreachable
                 :result (list side pose-stamped)))
        (moveit:goal-in-collision (f)
          (declare (ignore f))
          (roslisp:ros-error (move arm) "Goal in collision.")
          (cram-language::on-finish-move-arm log-id nil)
-         (error 'manipulation-pose-unreachable
+         (error 'cram-plan-failures:manipulation-pose-unreachable
                 :result (list side pose-stamped))))
       (setf result
             (multiple-value-bind (start trajectory)
