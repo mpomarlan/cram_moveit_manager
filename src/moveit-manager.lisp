@@ -103,12 +103,15 @@
                                    :raise-elbow raise-elbow
                                    :start-state start-state
                                    :touch-links touch-links
-                                   :additional-touch-link-groups `(,object-names-in-hand)
-                                   :additional-collision-objects-groups `(,hand-link-names)
-                                   :plan-only T
-                                   :additional-values `(t))
+                                   :additional-touch-link-groups
+                                   (when object-names-in-hand `(,object-names-in-hand))
+                                   :additional-collision-objects-groups
+                                   (when hand-link-names `(,hand-link-names))
+                                   :plan-only t
+                                   :additional-values
+                                   (when object-names-in-hand `(t)))
               (declare (ignorable start))
-              (cram-language::on-finish-move-arm log-id T)
+              (cram-language::on-finish-move-arm log-id t)
               trajectory)))))
 
 (defun plan-trajectory-sequence (side link-name poses ignore-collisions allowed-collision-objects collidable-objects max-tilt raise-elbow)
